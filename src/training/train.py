@@ -21,13 +21,19 @@ def evaluate_against_random(agent, num_games=500, num_players=6):
     for game in range(num_games):
         try:
             # Create a new poker game
-            state = pkrs.State.from_seed(
-                n_players=num_players,
-                button=game % num_players,  # Rotate button for fairness
-                sb=1,
-                bb=2,
-                stake=200.0,
-                seed=game
+            # state = pkrs.State.from_seed(
+            #     n_players=num_players,
+            #     button=game % num_players,  # Rotate button for fairness
+            #     sb=1,
+            #     bb=2,
+            #     stake=200.0,
+            #     seed=game
+            # )
+            state = pkrs.BonusState.from_seed(
+                ante=10.0,        # 底注
+                bonus_bet=1.0,    # 邊注（0 = 不下）
+                stake=1000.0,     # 玩家本金
+                seed=game,
             )
             
             # Play until the game is over
