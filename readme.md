@@ -182,6 +182,34 @@ python scripts/visualize_tournament.py \
   --num-games 100
 ```
 
+## Ultimate Texas Hold'em (UTH)
+
+The repo also includes a pure-Python Ultimate Texas Hold'em environment and a Deep CFR training pipeline for it. UTH is a heads-up game against the house: the player posts equal Ante and Blind bets (plus an optional Trips side bet), then has one chance to raise — 3x/4x ante pre-flop, 2x on the flop, or 1x on the river (otherwise fold). The dealer needs a pair or better to qualify; the Blind bet pays a bonus table from a straight up, and Trips pays on three of a kind or better regardless of who wins.
+
+Key files:
+
+- `src/envs/uth_env.py` — game engine (`UTHState`, `UTHEnv`), 7-card hand evaluator, settlement logic
+- `src/envs/uth_paytables.py` — configurable Blind/Trips paytables (UTH-01 .. UTH-04, default UTH-01)
+- `src/core/uth_deep_cfr.py` — `UTHDeepCFRAgent` with state encoding over the 6-way action space (Fold, Check, Bet1x..Bet4x)
+- `src/training/train_uth.py` — training loop with TensorBoard logging, periodic eval, and checkpoints
+
+The environment does not require the Rust `pokers` package — it runs anywhere Python + PyTorch run.
+
+Train:
+
+```bash
+python3 -m src.training.train_uth --iterations 200 --traversals-per-iteration 200 \
+  --ante 10 --trips-bet 1 --paytable UTH-01 --save-dir models_uth --verbose
+# or, after `pip install -e .`:
+deepcfr-train-uth --iterations 200
+```
+
+Test:
+
+```bash
+python3 -m pytest tests/test_uth_env.py tests/test_uth_training.py -q
+```
+
 ## Testing and Regression Coverage
 
 The repo now includes targeted regression tests for the issues that have caused the most damage recently.
@@ -200,6 +228,10 @@ What these cover:
   - self-play and mixed-training smoke tests
   - replay-memory shape consistency
   - explicit `.pt` save-path handling
+- `tests/test_uth_env.py`
+  - UTH rule regressions: bet-sizing caps per street, dealer qualification, Blind/Trips paytable settlement, determinism, money conservation
+- `tests/test_uth_training.py`
+  - UTH Deep CFR traversal/training smoke tests, checkpoint save/load, reproducibility
 
 ## Notes on Results
 
