@@ -18,6 +18,7 @@ setup(
     entry_points={
         'console_scripts': [
             'deepcfr-train=src.training.train:main',
+            'deepcfr-train-uth=src.training.train_uth:main',
             'deepcfr-play=scripts.play:main',
             'deepcfr-tournament=scripts.visualize_tournament:main',
             'deepcfr-gui=scripts.poker_gui:main'
