@@ -38,9 +38,21 @@ python -c "import pokers as pkrs; s=pkrs.BonusState.from_seed(ante=10.0, bonus_b
   `legal_actions` / `apply_action` / `status` / `final_state` / `from_action` …），
   以便直接復用 `src/core/model.py::encode_state`。
 - 牌型評估器（7 選 5）在 `uth_env.py` 內實現，並在
-  `tests/test_uth_env.py::test_evaluator_agrees_with_pokers` 中以 `pkrs.State.from_deck`
+  `tests/test_uth_env.py::test_evaluator_matches_pokers_on_random_samples` 中以 `pkrs.State.from_deck`
   heads-up 攤牌的 reward 符號做 100% 一致性交叉驗證。
 - `BonusState` 保持不動，舊的 NLHE / Bonus 路徑不受影響。
+
+## 交叉驗證中發現的 `pokers` 引擎 bug
+
+- **Wheel（A-2-3-4-5）誤判**：Rust 引擎把 A 作低的順子當成 A 高順子排名，
+  導致「7 高順子 vs wheel」被判為平局（實測 trial 98：`6h7d` vs `Td2c`，
+  board `5c 2h Ac 4c 3s`）。純 Python 評估器的處理是正確的（wheel 高牌為 5）。
+  交叉驗證測試對 wheel 案例做了跳過處理，並用
+  `test_wheel_straight_ordering` 單獨鎖定正確行為。
+- **既有失敗（與 UTH 無關）**：`tests/test_pokers_regressions.py` 中
+  `all-in-runout-goes-straight-to-showdown` 與 `no-raise-when-call-uses-entire-stack`
+  兩條在 fork 的 `main` 與 `v0/huzaifaansari87654-…` 分支構建下均失敗 ——
+  readme 所述的 all-in 補丁不在當前任何遠端分支中。本次 UTH 工作未觸及該路徑。
 
 ## UTH 賠率表（BGC 官方，2015-03 修訂版）
 

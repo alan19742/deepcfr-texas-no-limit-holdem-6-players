@@ -144,6 +144,44 @@ python -m src.training.train_mixed_with_opponent_modeling \
   --log-dir logs/deepcfr_mixed_om
 ```
 
+### Ultimate Texas Hold'em (UTH)
+
+The repo also ships a single-player-vs-dealer Ultimate Texas Hold'em variant
+(BGC rules, revised March 2015) built on the same Deep CFR stack:
+
+- `src/core/uth_env.py` — pure-Python UTH rules engine (`UTHState`, `settle_uth`),
+  duck-type compatible with the `pokers` state interface. Supports Ante/Blind,
+  the optional Trips side bet, dealer qualification (pair or better), and the
+  four official paytables (`UTH-01` … `UTH-04`).
+- `src/core/uth_agent.py` — `UTHDeepCFRAgent` reusing `PokerNetwork`,
+  `PrioritizedMemory`, and `encode_state` (plus UTH-specific extra features).
+- `src/agents/uth_dealer_agent.py` — fixed-rule dealer (never acts; chance
+  auto-advances inside the environment).
+
+Train:
+
+```bash
+python -m src.training.train_uth --iterations 1000 --traversals 200 \
+  --ante 10 --bonus-bet 0 --paytable UTH-01 \
+  --log-dir logs/deepcfr_uth --save-dir models/uth
+```
+
+Quick smoke run:
+
+```bash
+python -m src.training.train_uth --iterations 50 --traversals 20 --eval-games 100
+```
+
+Test:
+
+```bash
+python3 -m pytest tests/test_uth_rules.py tests/test_uth_env.py tests/test_uth_training_smoke.py -q
+```
+
+See [docs/uth_api_notes.md](./docs/uth_api_notes.md) for the `pokers` fork API
+probe results (why `BonusState` is *not* UTH) and known engine discrepancies
+found during evaluator cross-validation.
+
 ### Monitor Training
 
 ```bash
