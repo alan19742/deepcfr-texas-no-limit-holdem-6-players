@@ -195,7 +195,36 @@ Key files:
 
 The environment does not require the Rust `pokers` package — it runs anywhere Python + PyTorch run.
 
-Train:
+### Interactive game interface
+
+The easiest way to start the web interface (auto-installs web deps if needed):
+
+```bash
+bash start_game.sh
+# then open http://localhost:8000 in your browser
+```
+
+To change the port:
+
+```bash
+UTH_PORT=9000 bash start_game.sh
+```
+
+Manual start (if you manage the venv yourself):
+
+```bash
+# step 1 — install web dependencies (one time only)
+pip install -r requirements-web.txt
+
+# step 2 — start the server
+python3 -m uvicorn web.uth_server:app --host 0.0.0.0 --port 8000 --reload
+
+# step 3 — open http://localhost:8000
+```
+
+The server watches for file changes (`--reload`) so edits to the engine or frontend are picked up without a restart.
+
+### Train
 
 ```bash
 python3 -m src.training.train_uth --iterations 200 --traversals-per-iteration 200 \
@@ -204,7 +233,7 @@ python3 -m src.training.train_uth --iterations 200 --traversals-per-iteration 20
 deepcfr-train-uth --iterations 200
 ```
 
-Test:
+### Test
 
 ```bash
 python3 -m pytest tests/test_uth_env.py tests/test_uth_training.py -q
