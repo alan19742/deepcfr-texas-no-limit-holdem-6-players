@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate Texas Hold&apos;em</title>
+<style>
+  :root {
+    --background: #0a0c0a;
+    --surface: #131613;
+    --surface-2: #1b201b;
+    --border: #2a312a;
+    --foreground: #e8ece8;
+    --muted: #8a948a;
+    --accent: #3ecf8e;
+    --accent-dim: rgba(62, 207, 142, 0.12);
+    --danger: #e5484d;
+    --card-face: #f5f2ea;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: var(--background); color: var(--foreground); }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px; border-bottom: 1px solid var(--border);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand .mark {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: var(--accent-dim); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .brand h1 { font-size: 15px; font-weight: 600; letter-spacing: 0.2px; }
+  .brand .sub { font-size: 11px; color: var(--muted); }
+  .stats { display: flex; gap: 20px; }
+  .stat { text-align: right; }
+  .stat .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+  .stat .value { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stat .value.pos { color: var(--accent); }
+  .stat .value.neg { color: var(--danger); }
+
+  main {
+    flex: 1; display: flex; gap: 16px; padding: 16px 24px 24px;
+    max-width: 1200px; width: 100%; margin: 0 auto;
+  }
+  .table-col { flex: 1; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  aside { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
+
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px;
+  }
+  .panel h2 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--muted); margin-bottom: 10px; font-weight: 600;
+  }
+
+  /* Felt table */
+  .felt {
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(62, 207, 142, 0.07), transparent 65%),
+      var(--surface);
+    border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 16px; display: flex; flex-direction: column; gap: 18px;
+    flex: 1;
+  }
+  .seat { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .seat .seat-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--muted); display: flex; align-items: center; gap: 8px;
+  }
+  .seat .seat-label .hand-name { color: var(--accent); text-transform: none; letter-spacing: 0.2px; font-weight: 600; }
+  .seat .seat-label .hand-name.lose { color: var(--danger); }
+  .cards { display: flex; gap: 8px; min-height: 92px; align-items: center; }
+
+  .card {
+    width: 64px; height: 90px; border-radius: 8px;
+    background: var(--card-face); color: #1a1a1a;
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 6px 7px; font-weight: 700; position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+    animation: dealIn 0.3s ease both;
+  }
+  .card .corner { font-size: 14px; line-height: 1.1; }
+  .card .pip { font-size: 26px; text-align: center; }
+  .card .corner.bottom { transform: rotate(180deg); }
+  .card.red { color: #c8313c; }
+  .card.back {
+    background:
+      repeating-linear-gradient(45deg, #1d4a36 0 6px, #173c2c 6px 12px);
+    border: 4px solid #244; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.45);
+  }
+  .card.placeholder {
+    background: transparent; border: 1.5px dashed var(--border); box-shadow: none;
+    animation: none;
+  }
+  @keyframes dealIn {
+    from { opacity: 0; transform: translateY(-10px) scale(0.92); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .divider { height: 1px; background: var(--border); margin: 0 30px; }
+
+  /* Bets row */
+  .bets { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+  .chip {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 999px; padding: 5px 12px; font-size: 12px;
+    color: var(--muted); font-variant-numeric: tabular-nums;
+  }
+  .chip b { color: var(--foreground); font-weight: 600; }
+  .chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .chip.idle .dot { background: var(--border); }
+
+  /* Controls */
+  .controls { display: flex; flex-direction: column; gap: 10px; }
+  .stage-line { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+  .stage-line .pill {
+    background: var(--accent-dim); color: var(--accent);
+    border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  button {
+    font: inherit; cursor: pointer; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface-2);
+    color: var(--foreground); padding: 10px 18px; font-size: 14px; font-weight: 600;
+    transition: border-color 0.15s, background 0.15s, opacity 0.15s;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: 0.35; cursor: not-allowed; }
+  button.primary { background: var(--accent); color: #07130d; border-color: var(--accent); }
+  button.primary:hover:not(:disabled) { background: #5adda1; }
+  button.danger { color: var(--danger); }
+  button.danger:hover:not(:disabled) { border-color: var(--danger); }
+  .hint { font-size: 12px; color: var(--muted); }
+
+  /* New-hand form */
+  .form-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 11px; color: var(--muted); letter-spacing: 0.5px; }
+  .field input {
+    font: inherit; width: 90px; background: var(--background);
+    border: 1px solid var(--border); color: var(--foreground);
+    border-radius: 8px; padding: 9px 10px; font-variant-numeric: tabular-nums;
+  }
+  .field input:focus { outline: none; border-color: var(--accent); }
+
+  /* Result */
+  .result-rows { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+  .result-rows .row { display: flex; justify-content: space-between; }
+  .result-rows .row span:first-child { color: var(--muted); }
+  .result-rows .row .amt { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .amt.pos { color: var(--accent); }
+  .amt.neg { color: var(--danger); }
+  .result-total {
+    margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; font-size: 15px; font-weight: 700;
+  }
+  .banner {
+    border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600;
+    text-align: center; margin-bottom: 10px;
+  }
+  .banner.win { background: var(--accent-dim); color: var(--accent); }
+  .banner.lose { background: rgba(229, 72, 77, 0.12); color: var(--danger); }
+  .banner.push { background: var(--surface-2); color: var(--muted); }
+
+  /* Paytables */
+  .pay-rows { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+  .pay-rows .row { display: flex; justify-content: space-between; color: var(--muted); }
+  .pay-rows .row b { color: var(--foreground); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  .error { color: var(--danger); font-size: 13px; min-height: 18px; }
+
+  @media (max-width: 860px) {
+    main { flex-direction: column; padding: 12px; }
+    aside { width: 100%; flex-direction: row; flex-wrap: wrap; }
+    aside .panel { flex: 1; min-width: 220px; }
+    .card { width: 52px; height: 74px; }
+    .card .pip { font-size: 20px; }
+    .stats { gap: 12px; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="mark">&#9824;</div>
+      <div>
+        <h1>Ultimate Texas Hold&apos;em</h1>
+        <div class="sub">Deep CFR 專案 &middot; UTH-01 賠率表</div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div class="label">手數</div>
+        <div class="value" id="stat-hands">0</div>
+      </div>
+      <div class="stat">
+        <div class="label">籌碼</div>
+        <div class="value" id="stat-bankroll">1000.00</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="table-col">
+      <div class="felt">
+        <div class="seat">
+          <div class="seat-label">莊家 <span class="hand-name" id="dealer-hand-name"></span></div>
+          <div class="cards" id="dealer-cards"></div>
+        </div>
+        <div class="divider"></div>
+        <div class="seat">
+          <div class="seat-label">公共牌</div>
+          <div class="cards" id="board-cards"></div>
+        </div>
+        <div class="divider"></div>
+        <div class="seat">
+          <div class="seat-label">你的手牌 <span class="hand-name" id="player-hand-name"></span></div>
+          <div class="cards" id="player-cards"></div>
+        </div>
+        <div class="bets" id="bets-row"></div>
+      </div>
+
+      <div class="panel controls">
+        <div class="stage-line">
+          <span class="pill" id="stage-pill">未開局</span>
+          <span class="hint" id="stage-hint">設定注額後按「發牌」開始。</span>
+        </div>
+        <div class="btn-row" id="action-buttons"></div>
+        <div class="form-row" id="new-hand-form">
+          <div class="field">
+            <label for="ante-input">Ante / Blind（各）</label>
+            <input id="ante-input" type="number" min="1" step="1" value="10">
+          </div>
+          <div class="field">
+            <label for="trips-input">Trips 邊注</label>
+            <input id="trips-input" type="number" min="0" step="1" value="1">
+          </div>
+          <button class="primary" id="deal-btn">發牌</button>
+        </div>
+        <div class="error" id="error-line"></div>
+      </div>
+    </div>
+
+    <aside>
+      <div class="panel" id="result-panel" style="display:none">
+        <h2>本手結算</h2>
+        <div id="result-banner"></div>
+        <div class="result-rows" id="result-rows"></div>
+        <div class="result-total"><span>合計</span><span class="amt" id="result-total"></span></div>
+      </div>
+      <div class="panel">
+        <h2>Blind 賠率（贏且順子以上）</h2>
+        <div class="pay-rows" id="blind-pay"></div>
+      </div>
+      <div class="panel">
+        <h2>Trips 賠率（三條以上即賠）</h2>
+        <div class="pay-rows" id="trips-pay"></div>
+      </div>
+    </aside>
+  </main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let token = null;
+let busy = false;
+
+const STAGE_LABELS = {
+  Preflop: "翻牌前", Flop: "翻牌圈", River: "河牌圈", Showdown: "攤牌",
+};
+const STAGE_HINTS = {
+  Preflop: "看完底牌：下 4x / 3x Ante，或過牌看翻牌。",
+  Flop: "看完前三張公共牌：下 2x Ante，或過牌看河牌。",
+  River: "五張公共牌已開：下 1x Ante，或棄牌。",
+  Showdown: "本手結束。按「發牌」開始下一手。",
+};
+const ACTION_META = {
+  Bet4x: { label: "下注 4x", cls: "primary" },
+  Bet3x: { label: "下注 3x", cls: "primary" },
+  Bet2x: { label: "下注 2x", cls: "primary" },
+  Bet1x: { label: "下注 1x", cls: "primary" },
+  Check: { label: "過牌", cls: "" },
+  Fold:  { label: "棄牌", cls: "danger" },
+};
+const HAND_NAMES_ZH = {
+  "High Card": "高牌", "Pair": "一對", "Two Pair": "兩對",
+  "Three of a Kind": "三條", "Straight": "順子", "Flush": "同花",
+  "Full House": "葫蘆", "Four of a Kind": "四條",
+  "Straight Flush": "同花順", "Royal Flush": "皇家同花順",
+};
+
+function cardEl(card) {
+  const div = document.createElement("div");
+  if (card === "back") { div.className = "card back"; return div; }
+  if (card === null) { div.className = "card placeholder"; return div; }
+  div.className = "card" + (card.red ? " red" : "");
+  div.innerHTML =
+    '<div class="corner">' + card.rank + "<br>" + card.suit + "</div>" +
+    '<div class="pip">' + card.suit + "</div>" +
+    '<div class="corner bottom">' + card.rank + "<br>" + card.suit + "</div>";
+  return div;
+}
+
+function renderCards(elId, cards, slots) {
+  const el = $(elId);
+  el.innerHTML = "";
+  for (let i = 0; i < slots; i++) {
+    el.appendChild(cardEl(i < cards.length ? cards[i] : null));
+  }
+}
+
+function fmt(n) { return (n >= 0 ? "+" : "") + n.toFixed(2); }
+
+function renderBets(s) {
+  const row = $("bets-row");
+  row.innerHTML = "";
+  const bets = [
+    ["Ante", s.ante, true],
+    ["Blind", s.blind, true],
+    ["Trips", s.trips_bet, s.trips_bet > 0],
+    ["Play", s.play_bet, s.play_bet > 0],
+  ];
+  for (const [name, amt, active] of bets) {
+    const chip = document.createElement("div");
+    chip.className = "chip" + (active ? "" : " idle");
+    chip.innerHTML = '<span class="dot"></span>' + name + " <b>" + amt.toFixed(0) + "</b>";
+    row.appendChild(chip);
+  }
+}
+
+function render(s) {
+  token = s.token;
+  $("stat-hands").textContent = s.hands;
+  $("stat-bankroll").textContent = s.bankroll.toFixed(2);
+
+  renderCards("player-cards", s.player_hand, 2);
+  renderCards("board-cards", s.public_cards, 5);
+  if (s.dealer_hand) {
+    renderCards("dealer-cards", s.dealer_hand, 2);
+  } else {
+    renderCards("dealer-cards", ["back", "back"], 2);
+  }
+
+  renderBets(s);
+
+  $("stage-pill").textContent = STAGE_LABELS[s.stage] || s.stage;
+  $("stage-hint").textContent = STAGE_HINTS[s.stage] || "";
+
+  const btnRow = $("action-buttons");
+  btnRow.innerHTML = "";
+  const order = ["Bet4x", "Bet3x", "Bet2x", "Bet1x", "Check", "Fold"];
+  for (const name of order) {
+    if (!s.legal_actions.includes(name)) continue;
+    const meta = ACTION_META[name];
+    const btn = document.createElement("button");
+    btn.className = meta.cls;
+    btn.textContent = meta.label;
+    btn.onclick = () => act(name);
+    btnRow.appendChild(btn);
+  }
+
+  $("new-hand-form").style.display = s.done ? "flex" : "none";
+  $("deal-btn").textContent = s.hands > 0 ? "再來一手" : "發牌";
+
+  const playerName = $("player-hand-name");
+  const dealerName = $("dealer-hand-name");
+  playerName.textContent = "";
+  dealerName.textContent = "";
+  dealerName.className = "hand-name";
+
+  const panel = $("result-panel");
+  if (s.result) {
+    const r = s.result;
+    playerName.textContent = HAND_NAMES_ZH[r.player_hand_name] || r.player_hand_name;
+    dealerName.textContent =
+      (HAND_NAMES_ZH[r.dealer_hand_name] || r.dealer_hand_name) +
+      (r.dealer_qualifies ? "" : "（未及格）");
+
+    panel.style.display = "block";
+    const banner = $("result-banner");
+    let cls = "push", text = "平手 — 退回注額";
+    if (r.folded) { cls = "lose"; text = "已棄牌"; }
+    else if (r.total > 0) { cls = "win"; text = "你贏了 " + fmt(r.total); }
+    else if (r.total < 0) { cls = "lose"; text = "你輸了 " + fmt(r.total); }
+    banner.innerHTML = '<div class="banner ' + cls + '">' + text + "</div>";
+
+    const rows = $("result-rows");
+    rows.innerHTML = "";
+    const items = [
+      ["Ante" + (r.dealer_qualifies ? "" : "（莊家未及格，退回）"), r.ante_net],
+      ["Blind", r.blind_net],
+      ["Play", r.play_net],
+    ];
+    if (Math.abs(r.trips_net) > 1e-9 || r.trips_net !== 0) items.push(["Trips", r.trips_net]);
+    for (const [label, amt] of items) {
+      const row = document.createElement("div");
+      row.className = "row";
+      const sign = amt > 0 ? "pos" : amt < 0 ? "neg" : "";
+      row.innerHTML = "<span>" + label + '</span><span class="amt ' + sign + '">' + fmt(amt) + "</span>";
+      rows.appendChild(row);
+    }
+    const total = $("result-total");
+    total.textContent = fmt(r.total);
+    total.className = "amt " + (r.total > 0 ? "pos" : r.total < 0 ? "neg" : "");
+  } else {
+    panel.style.display = "none";
+  }
+}
+
+async function api(path, body) {
+  if (busy) return null;
+  busy = true;
+  $("error-line").textContent = "";
+  try {
+    const res = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "請求失敗");
+    return data;
+  } catch (e) {
+    $("error-line").textContent = e.message;
+    return null;
+  } finally {
+    busy = false;
+  }
+}
+
+async function deal() {
+  const ante = parseFloat($("ante-input").value) || 10;
+  const trips = parseFloat($("trips-input").value) || 0;
+  const s = await api("/api/new", { token, ante, trips_bet: trips });
+  if (s) render(s);
+}
+
+async function act(name) {
+  const s = await api("/api/action", { token, action: name });
+  if (s) render(s);
+}
+
+async function loadPaytables() {
+  const res = await fetch("/api/paytables");
+  const data = await res.json();
+  const fill = (elId, table) => {
+    const el = $(elId);
+    el.innerHTML = "";
+    for (const [name, mult] of Object.entries(table)) {
+      const row = document.createElement("div");
+      row.className = "row";
+      const zh = HAND_NAMES_ZH[name] || name;
+      const odds = mult === 1.5 ? "3 : 2" : mult + " : 1";
+      row.innerHTML = "<span>" + zh + "</span><b>" + odds + "</b>";
+      el.appendChild(row);
+    }
+  };
+  fill("blind-pay", data.blind);
+  fill("trips-pay", data.trips);
+}
+
+$("deal-btn").onclick = deal;
+renderCards("player-cards", [], 2);
+renderCards("board-cards", [], 5);
+renderCards("dealer-cards", ["back", "back"], 2);
+loadPaytables();
+</script>
+</body>
+</html>
